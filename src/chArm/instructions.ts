@@ -1,6 +1,11 @@
-import { isUint64N, isUint64C, getUint64Complement, isUint64Z } from "../util/util";
+import {
+    isUint64N, isUint64C, isUint64Z,
+    className,
+    type FilterRecordValue as Filter
+} from "../util/util";
 import type { State, RegisterSP, RegisterZR, RegisterGP } from "./state";
 
+type _Register = RegisterSP | RegisterZR;
 
 export type Instruction = Readonly<
     STUR | LDUR | MOV | ADRP | ADDS | SUBS | CMN
@@ -8,30 +13,87 @@ export type Instruction = Readonly<
 
 export type InstructionType = Instruction["opcode"];
 
-interface InstructionBase {
-    opcode: string;
+type Operand = bigint | _Register;
+
+abstract class InstructionBase<
+    O extends Record<string, Operand> = Record<string, Operand>
+> {
+    abstract readonly opcode: string;
+    private readonly operands: Readonly<O>;
+
+    /** Dummy value with the type of the operands */
+    // @ts-ignore
+    readonly O: Readonly<O>;
+
+    constructor(operands: Readonly<O>) {
+        this.operands = Object.freeze(operands);
+        this.checkOperands?.();
+    }
+
     /**
      * Run the given instruction. If this returns true, do not increment the
      * instruction pointer
      */
-    applyTo?(state: State): void | boolean;
+    abstract applyTo(operands: this["O"], state: State): void | boolean;
+
+    /** Check the validity of the arguments. This should be overridden */
+    protected abstract checkOperands(): void;
+
+    // Various helper methods for validation
+
+    protected checkCondition<T>(
+        x: T, condition: boolean | ((x: T) => boolean), name: string
+    ): void {
+        if (!(typeof condition === 'boolean' ? condition : condition(x))) {
+            throw new Error(`Invalid ${name} for ${className(this)}: ${x}`);
+        }
+    }
+    protected checkOperand<K extends keyof O>(
+        op: K,
+        condition: (x: O[K]) => boolean
+    ) {
+        this.checkCondition(this.operands[op], condition, op as string);
+    }
+    protected checkRegisterGP(r: RegisterGP | Filter<O, RegisterGP>): void {
+        if (typeof r === 'string') r = this.operands[r] as RegisterGP;
+        this.checkCondition(
+            r, typeof r != "number" || r < 0 || r > 30, 'register'
+        );
+    }
+    protected checkRegisterSP(r: RegisterSP | Filter<O, RegisterSP>): void {
+        if (typeof r === 'string') r = this.operands[r] as RegisterSP;
+        if (r !== "SP") this.checkRegisterGP(r as RegisterGP);
+    }
+    protected checkRegisterZR(r: RegisterZR | Filter<O, RegisterZR>): void {
+        if (typeof r === 'string') r = this.operands[r] as RegisterZR;
+        if (r !== "ZR") this.checkRegisterGP(r as RegisterGP);
+    }
+    protected checkRegister(r: _Register | Filter<O, _Register>): void {
+        if (typeof r === 'string') r = this.operands[r] as _Register;
+        if (r !== "SP" && r !== "ZR") this.checkRegisterGP(r as RegisterGP);
+    }
+    /**
+     * Check if a given BigInt has at most the given number of bits. If b is 
+     * negative, the range is signed; otherwise it is unsigned.
+     */
+    protected checkOperandRange(op: Filter<O, bigint>, b: number) {
+        const b_ = BigInt(b);
+        const n = this.operands[op] as bigint;
+        this.checkCondition(n,
+            b_ < 0n
+                ? n < -(1n << ~b_) || n >= (1n << ~b_) // Note that ~b_ = -b_ - 1
+                : n < 0n && n >= (1n << b_),
+            op as string
+        )
+    }
 }
 
-type _Register = RegisterSP | RegisterZR;
-
 abstract class BinOpRR<
-    dst extends _Register = _Register,
-    a extends _Register = _Register,
-    b extends _Register = _Register,
-> implements InstructionBase {
-    abstract readonly opcode: string;
-    readonly operands: { dst: dst; a: a; b: b; };
-    constructor(dst: dst, a: a, b: b) {
-        this.operands = { dst, a, b };
-    }
-    applyTo(state: State): void {
-        const { dst, a, b } = this.operands;
-
+    dst extends _Register = RegisterGP,
+    a extends _Register = RegisterGP,
+    b extends _Register = RegisterGP,
+> extends InstructionBase<{ dst: dst, a: a, b: b }> {
+    applyTo({ dst, a, b }: typeof this["O"], state: State): void {
         state.setRegister(dst, this.doOperation(
             state.getRegister(a), state.getRegister(b), state
         ));
@@ -43,15 +105,8 @@ abstract class BinOpRR<
 abstract class BinOpRI<
     dst extends _Register = RegisterGP,
     a extends _Register = RegisterGP,
-> implements InstructionBase {
-    abstract readonly opcode: string;
-    readonly operands: { dst: dst; a: a; b: bigint; };
-    constructor(dst: dst, a: a, b: bigint) {
-        this.operands = { dst, a, b };
-    }
-    applyTo(state: State): void {
-        const { dst, a, b } = this.operands;
-
+> extends InstructionBase<{ dst: dst, a: a, b: bigint }> {
+    applyTo({ dst, a, b }: typeof this["O"], state: State): void {
         state.setRegister(dst, this.doOperation(
             state.getRegister(a), b, state
         ));
@@ -61,21 +116,18 @@ abstract class BinOpRI<
 }
 
 abstract class BinOpRX<
-    dst extends _Register = _Register,
-    a extends _Register = _Register,
-    b extends _Register = _Register,
-> implements InstructionBase {
-    abstract readonly opcode: string;
-    readonly operands: { dst: dst; a: a; b: b | bigint; };
+    dst extends _Register = RegisterGP,
+    a extends _Register = RegisterGP,
+    b extends _Register = RegisterGP,
+> extends InstructionBase<{ dst: dst, a: a, b: b | bigint }> {
     readonly isI: boolean;
 
-    constructor(dst: dst, a: a, b: b | bigint) {
-        this.operands = { dst, a, b };
+    constructor({ dst, a, b }: { dst: dst, a: a, b: b | bigint }) {
+        super({ dst, a, b });
         this.isI = (typeof b === "bigint") as never;
     }
-    applyTo(state: State): void {
-        const { dst, a, b } = this.operands;
 
+    applyTo({ dst, a, b }: typeof this["O"], state: State): void {
         state.setRegister(dst, this.doOperation(
             state.getRegister(a),
             this.isI ? b as bigint : state.getRegister(b as b),
@@ -86,81 +138,105 @@ abstract class BinOpRX<
     abstract doOperation(a: bigint, b: bigint, state: State): bigint;
 }
 
-export class LDUR implements InstructionBase {
+export class LDUR extends InstructionBase<{
+    src_b: RegisterSP, dst: RegisterGP, offset: bigint
+}> {
     readonly opcode = "LDUR";
-    readonly operands: { dst: RegisterGP; src_b: RegisterSP; offset: bigint; };
 
-    constructor(dst: RegisterGP, src_b: RegisterSP, offset: bigint = 0n) {
-        this.operands = { dst, src_b, offset };
+    protected checkOperands(): void {
+        this.checkRegisterSP("src_b");
+        this.checkRegisterGP("dst");
+        this.checkOperandRange("offset", -9);
     }
 
-    applyTo(state: State): void {
-        const { src_b, offset, dst } = this.operands;
+    applyTo({ src_b, offset, dst }: this["O"], state: State): void {
         const value = state.getMemory(src_b, offset);
         state.setRegister(dst, value);
     }
 }
 
-export class STUR implements InstructionBase {
+export class STUR extends InstructionBase<{
+    src: RegisterGP; dst_b: RegisterSP; offset: bigint;
+}> {
     readonly opcode = "STUR";
-    readonly operands: { src: RegisterGP; dst_b: RegisterSP; offset: bigint; };
 
-    constructor(src: RegisterGP, dst_b: RegisterSP, offset: bigint = 0n) {
-        this.operands = { src, dst_b, offset };
+    checkOperands() {
+        this.checkRegisterGP("src");
+        this.checkRegisterSP("dst_b");
+        this.checkOperandRange("offset", -9);
     }
 
-    applyTo(state: State): void {
-        const { src, dst_b, offset } = this.operands;
+    applyTo({ src, dst_b, offset }: this["O"], state: State): void {
         const value = state.getRegister(src);
         state.setMemory(dst_b, offset, value);
     }
 }
 
-// This includes MOVK and MOVN
-export class MOV implements InstructionBase {
-    readonly opcode: "MOVK" | "MOVZ";
-    readonly operands: { dst: RegisterGP; value: bigint; shift: bigint; };
-    readonly zero: boolean;
+abstract class MOV extends InstructionBase<{
+    dst: RegisterGP; value: bigint; shift: bigint;
+}> {
+    abstract readonly zero: boolean;
 
-    constructor(dst: RegisterGP, value: bigint, shift: bigint, zero: boolean = true) {
-        this.opcode = `MOV${zero ? "Z" : "K"}`;
-        this.zero = zero;
-        this.operands = { dst, value, shift };
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkOperandRange("value", 16);
+        this.checkOperand("shift", x => ![0n, 16n, 32n, 48n].includes(x));
     }
 
-    applyTo(state: State): void {
-        const { dst, value, shift } = this.operands;
+    applyTo({ dst, value, shift }: this["O"], state: State): void {
         const register = state.rawRegister(dst);
         if (this.zero) register.setBigUint64(0, 0n);
-        // Registers are big-endian
+        // Remember registers are big-endian
         register.setUint16(6 - Number(shift >> 3n), Number(value));
     }
 }
 
-export class ADRP implements InstructionBase {
-    readonly opcode = "ADRP";
-    readonly operands: { dst: RegisterGP; offset: bigint; };
+export class MOVK extends MOV {
+    readonly opcode = "MOVK";
+    readonly zero = false;
+}
 
-    constructor(dst: RegisterGP, value: bigint) {
-        this.operands = { dst, offset: value };
+export class MOVZ extends MOV {
+    readonly opcode = "MOVK";
+    readonly zero = true;
+}
+
+export class ADRP extends InstructionBase<{ dst: RegisterGP, offset: bigint }> {
+    readonly opcode = "ADRP";
+
+    protected checkOperands(): void {
+        this.checkOperandRange("offset", -13);
     }
 
-    applyTo(state: State): void {
-        const { dst, offset: value } = this.operands;
-        state.setRegister(dst, state.PC + value);
+    applyTo({ dst, offset }: this["O"], state: State): void {
+        // According to documentation, we store (PC + (offset << 12)) with the 
+        // low 12 bits discarded
+        state.setRegister(dst, ((state.PC >> 12n) + offset) << 12n);
     }
 }
 
 export class ADD extends BinOpRI<RegisterSP, RegisterSP> {
     readonly opcode = "ADD";
 
+    protected checkOperands(): void {
+        this.checkRegisterSP("dst");
+        this.checkRegisterSP("a");
+        this.checkOperandRange("b", 12);
+    }
+
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return a + b;
     }
 }
 
-export class ADDS extends BinOpRR<RegisterZR, RegisterZR, RegisterZR> {
+export class ADDS extends BinOpRR {
     readonly opcode = "ADDS";
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkRegisterGP("b");
+    }
 
     doOperation(a: bigint, b: bigint, state: State): bigint {
         const res = a + b;
@@ -174,11 +250,16 @@ export class ADDS extends BinOpRR<RegisterZR, RegisterZR, RegisterZR> {
     }
 }
 
-export class CMN extends BinOpRI<"ZR", RegisterGP> {
+export class CMN extends BinOpRI<"ZR"> {
     readonly opcode = "CMN";
 
-    constructor(a: RegisterGP, b: bigint) {
-        super("ZR", a, b);
+    constructor({ a, b }: { a: RegisterGP, b: bigint }) {
+        super({ dst: "ZR", a, b });
+    }
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("a");
+        this.checkOperandRange("b", 12);
     }
 
     doOperation = ADDS.prototype.doOperation;
@@ -187,13 +268,25 @@ export class CMN extends BinOpRI<"ZR", RegisterGP> {
 export class SUB extends BinOpRI<RegisterSP, RegisterSP> {
     readonly opcode = "SUB";
 
+    protected checkOperands(): void {
+        this.checkRegisterSP("dst");
+        this.checkRegisterSP("a");
+        this.checkOperandRange("b", 12);
+    }
+
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return a - b;
     }
 }
 
-export class SUBS extends BinOpRR<RegisterZR, RegisterZR, RegisterZR> {
+export class SUBS extends BinOpRR {
     readonly opcode = "SUBS";
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkRegisterGP("b");
+    }
 
     doOperation(a: bigint, b: bigint, state: State): bigint {
         const res = a - b;
@@ -207,32 +300,42 @@ export class SUBS extends BinOpRR<RegisterZR, RegisterZR, RegisterZR> {
     }
 }
 
-export class CMP extends BinOpRI<"ZR", RegisterGP> {
+export class CMP extends BinOpRI<"ZR"> {
     readonly opcode = "CMP";
 
-    constructor(a: RegisterGP, b: bigint) {
-        super("ZR", a, b);
+    constructor({ a, b }: { a: RegisterGP, b: bigint }) {
+        super({ dst: "ZR", a, b });
+    }
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("a");
+        this.checkOperandRange("b", 12);
     }
 
     doOperation = SUBS.prototype.doOperation;
 }
 
-export class MVN implements InstructionBase {
+export class MVN extends InstructionBase<{ dst: RegisterGP, a: RegisterGP }> {
     readonly opcode = "MVN";
-    readonly operands: { dst: RegisterGP, a: RegisterGP };
 
-    constructor(dst: RegisterGP, a: RegisterGP) {
-        this.operands = { dst, a };
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
     }
 
-    applyTo(state: State): void {
-        const { dst, a } = this.operands;
+    applyTo({ dst, a }: this["O"], state: State): void {
         state.setRegister(dst, ~state.getRegister(a));
     }
 }
 
 export class ORR extends BinOpRR {
     readonly opcode = "ORR";
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkRegisterGP("b");
+    }
 
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return a | b;
@@ -242,6 +345,12 @@ export class ORR extends BinOpRR {
 export class EOR extends BinOpRR {
     readonly opcode = "EOR";
 
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkRegisterGP("b");
+    }
+
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return a ^ b;
     }
@@ -249,6 +358,12 @@ export class EOR extends BinOpRR {
 
 export class ANDS extends BinOpRR {
     readonly opcode = "ANDS";
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkRegisterGP("b");
+    }
 
     doOperation(a: bigint, b: bigint, state: State): bigint {
         const res = a & b;
@@ -266,11 +381,16 @@ export class ANDS extends BinOpRR {
     }
 }
 
-export class TST extends BinOpRI<"ZR", RegisterGP> {
+export class TST extends BinOpRR<"ZR"> {
     readonly opcode = "TST";
 
-    constructor(a: RegisterGP, b: bigint) {
-        super("ZR", a, b);
+    constructor({ a, b }: { a: RegisterGP, b: RegisterGP }) {
+        super({ dst: "ZR", a, b });
+    }
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("a");
+        this.checkRegisterGP("b");
     }
 
     doOperation = ANDS.prototype.doOperation;
@@ -278,6 +398,13 @@ export class TST extends BinOpRI<"ZR", RegisterGP> {
 
 export class LSL extends BinOpRX {
     readonly opcode = "LSL";
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        if (this.isI) this.checkRegister("b" as never);
+        else this.checkOperandRange("b" as never, 6);
+    }
 
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return a << (b & 63n);
@@ -287,29 +414,45 @@ export class LSL extends BinOpRX {
 export class LSR extends BinOpRX {
     readonly opcode = "LSR";
 
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        if (this.isI) this.checkRegister("b" as never);
+        else this.checkOperandRange("b" as never, 6);
+    }
+
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return a >> (b & 63n);
     }
 }
 
-export class ASR extends BinOpRI<RegisterGP, RegisterGP> {
+export class ASR extends BinOpRI {
     readonly opcode = "ASR";
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkOperandRange("b", 6);
+    }
 
     doOperation(a: bigint, b: bigint, _: State): bigint {
         return BigInt.asIntN(64, a) >> b;
     }
 }
 
-export class UBFM implements InstructionBase {
-    readonly opcode = "ASR";
-    readonly operands: { dst: RegisterGP, a: RegisterGP, r: bigint, s: bigint };
+export class UBFM extends InstructionBase<{
+    dst: RegisterGP, a: RegisterGP, r: bigint, s: bigint
+}> {
+    readonly opcode = "UBFM";
 
-    constructor(dst: RegisterGP, a: RegisterGP, r: bigint, s: bigint) {
-        this.operands = {dst, a, r, s};
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+        this.checkRegisterGP("a");
+        this.checkOperandRange("r", 6);
+        this.checkOperandRange("s", 6);
     }
 
-    applyTo(state: State): void {
-        const {dst, a, r, s} = this.operands;
+    applyTo({ dst, a, r, s }: this["O"], state: State): void {
         state.setRegister(dst, UBFM.doOperation(state.getRegister(a), r, s));
     }
 
@@ -319,16 +462,103 @@ export class UBFM implements InstructionBase {
     }
 }
 
+const B_condMap = [ // DO NOT CHANGE ORDER
+    "EQ", "NE",
+    "CS", "HS",
+    "CC", "LO",
+    "MI", "PL",
+    "VS", "VC",
+    "HI", "LS",
+    "GE", "LT", "GT", "LE",
+    "AL", "NV"
+] as const;
 
 
+export namespace B {
+    export type cond = typeof B_condMap[number];
+}
 
-/*
-instructions:
+export class B extends InstructionBase<{ dst: bigint, cond: bigint }> {
+    readonly opcode: "B" | `B.${B.cond}`;
+    readonly isUnconditional: boolean;
 
-LDUR, STUR
-MOVK, MOVZ, ADRP
-ADD, ADDS, CMN, SUB, SUBS, CMP, MVN, ORR, EOR, ANDS, TST, LSL, LSR, ASR, UBFM
+    private static readonly conditions: readonly ((s: State) => boolean)[] = [
+        s => s.z,
+        s => !s.z,
+        s => s.c,
+        s => !s.c,
+        s => s.n,
+        s => !s.n,
+        s => s.v,
+        s => !s.v,
+        s => s.c && !s.z,
+        s => !s.c || s.z,
+        s => s.n == s.v,
+        s => s.n != s.v,
+        s => !s.z && s.n == s.v,
+        s => s.z || s.n != s.v,
+        _ => true,
+        _ => false
+    ] as const;
 
-B, B.cond, BL, RET
-NOP, HLT
-*/
+    constructor({ dst, cond }: { dst: bigint, cond: B.cond | undefined }) {
+        super({ dst, cond: BigInt(B_condMap.indexOf(cond ?? "AL")) });
+        this.isUnconditional = cond === undefined;
+        this.opcode = cond === undefined ? "B" : `B.${cond}`;
+    }
+
+    protected checkOperands(): void {
+        this.checkOperandRange("dst", this.isUnconditional ? -26 : -19);
+        this.checkOperandRange("cond", 4);
+    }
+
+    applyTo({ dst, cond }: this["O"], state: State): void | boolean {
+        if (B.conditions[Number(cond)](state)) {
+            state.branchPCrel(dst << 2n);
+            return true; // Prevent incrementing SP
+        }
+        return false;
+    }
+}
+
+export class BL extends InstructionBase<{ dst: bigint }> {
+    readonly opcode = "BL";
+
+    protected checkOperands(): void {
+        this.checkOperandRange("dst", -26);
+    }
+
+    applyTo({dst}: this["O"], state: State): void | boolean {
+        state.setRegister(30, state.PC + 4n);
+        state.branchPCrel(dst << 2n);
+        return true;
+    }
+}
+
+export class RET extends InstructionBase<{dst: RegisterGP}> {
+    readonly opcode = "RET";
+
+    constructor({dst = 30}: {dst: RegisterGP}) {
+        super({dst});
+    }
+
+    protected checkOperands(): void {
+        this.checkRegisterGP("dst");
+    }
+
+    applyTo({dst}: this["O"], state: State): void | boolean {
+        state.branchPCabs(state.getRegister(dst));
+    }
+}
+
+export class NOP extends InstructionBase<{}> {
+    readonly opcode = "NOP";
+    protected checkOperands(): void {}
+    applyTo(): void {}
+}
+
+export class HLT extends InstructionBase<{}> {
+    readonly opcode = "HLT";
+    protected checkOperands(): void {}
+    applyTo(): void {}
+}

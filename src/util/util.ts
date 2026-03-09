@@ -19,7 +19,7 @@ export function wrapUndef(
  * Union type of number literals from 0 to N - 1
  */
 export type IntRange<N extends number> = IntRange_<N, []>;
-type IntRange_<N extends number, A extends number[]> 
+type IntRange_<N extends number, A extends number[]>
     = A['length'] extends N ? A[number] : IntRange_<N, [...A, A['length']]>;
 
 /** Generate a random BigInt with the given number of bits */
@@ -42,15 +42,24 @@ export function toHexString(n: number | bigint, bytes: number) {
     return n.toString(16).padStart(bytes * 2, '0');
 }
 
-export function isUint64N(n: bigint) : boolean {
+export function isUint64N(n: bigint): boolean {
     return (n & 0x8000_0000_0000_0000n) != 0n;
 }
-export function isUint64Z(n: bigint) : boolean {
+export function isUint64Z(n: bigint): boolean {
     return (n & 0xffff_ffff_ffff_ffffn) == 0n;
 }
-export function isUint64C(n: bigint) : boolean {
+export function isUint64C(n: bigint): boolean {
     return n >= 0x1_0000_0000_0000_0000n;
 }
 export function getUint64Complement(n: bigint): bigint {
     return (~n + 1n) & 0xffff_ffff_ffff_ffffn;
 }
+
+export function className(x: object): string {
+    return x.constructor.name;
+}
+
+export type FilterRecordValue<R extends Record<string | symbol, unknown>, V> =
+    keyof { [K in keyof R as (
+        R[K] extends V ? K : never
+    )]: V }

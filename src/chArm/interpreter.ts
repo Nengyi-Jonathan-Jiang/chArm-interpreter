@@ -1,5 +1,6 @@
 import type { Instruction } from "./instructions";
 
-export function parse_chArm_src(source_lines: string[]): Instruction[] {
+export function parse_chArm_src(source: string): Instruction[] {
+    
     return [];
 }

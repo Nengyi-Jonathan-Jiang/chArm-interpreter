@@ -1,38 +1,26 @@
-import { useMemo, useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import { State } from './chArm/interpreter'
+import './chArm/interpreter'
+import { CodeEditor } from './codeEditor/codeEditor'
+import { CodeHighlighter } from './codeEditor/codeHighlighter'
+import { HighlighterWithErrors } from './codeEditor/highlighterWithErrors'
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [value, setValue] = useState("");
 
-  const state = useMemo(() => new State, []);
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    return (
+        <div>
+            <CodeEditor value={value} setValue={function (code: string): void {
+                setValue(code);
+            }} Highlighter={({ value, errors }) => {
+                return <HighlighterWithErrors errors={errors}>
+                    {value}
+                </HighlighterWithErrors>
+            }}/>
+        </div>
+    )
 }
 
 export default App
