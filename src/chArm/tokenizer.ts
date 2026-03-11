@@ -98,7 +98,7 @@ export type ChARMToken = Token<
     "endl"
 >;
 
-const operandRegex = /([[\],]|LSL)|(\bX(?:[12]?\d|30)\b)|(\bSP\b)|(\bXZR\b)|(#-?(?:0x[\da-fA-F_]+|0b[10_]+|[\d_]+)\b)|(\.?\b\w+\b)/s;
+const operandRegex = /([[\],]|LSL)|(\bX(?:[12]?\d|30)\b)|(\bSP\b)|(\bXZR\b)|(#-?(?:0x[\da-fA-F_]+|0b[10_]+|[\d_]+)\b)|(\.?\b\w+\b)/si;
 function tokenizeInstructionOperands(tok: Token<"line">): ChARMToken[] {
     const result: ChARMToken[] = [];
     let match: [ChARMToken, Token<"line">] | null;
@@ -125,12 +125,14 @@ function tokenizeInstructionOperands(tok: Token<"line">): ChARMToken[] {
 function tokenizeInstruction(tok: Token<"line">): ChARMToken[] {
     if (getTokenLength(tok) === 0) return [];
 
-    const [op] = getTokenContents(tok).split(/\s/, 1);
+    let [op] = getTokenContents(tok).split(/\s/, 1);
     const [opTok, rest] = splitToken(tok, "unknown", "line", op.length);
 
     if (op.match(/^\.?\w+:$/)) {
         return [relabelToken(opTok, "label")];
     }
+
+    op = op.toLowerCase();
 
     if (
         op.substring(0, 2) === "b." &&

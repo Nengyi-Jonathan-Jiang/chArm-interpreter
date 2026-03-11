@@ -77,7 +77,7 @@ export function assembleChARM(tokens: readonly ChARMToken[]): [
         lineNumber = firstToken.lineNumber;
 
         // Parse instruction
-        const opcode = getTokenContents(firstToken) as opcode;
+        const opcode = getTokenContents(firstToken).toLowerCase() as opcode;
         const oldLen = res.length;
         const oldNumErrors = errors.get(lineNumber)?.length ?? 0;
         try {

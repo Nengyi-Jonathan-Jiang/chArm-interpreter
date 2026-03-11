@@ -1,6 +1,7 @@
 @font-face {
     font-family: JetBrains Mono;
-    src: url(assets/JetBrainsMono.ttf) format("truetype")
+    src: url(assets/JetBrainsMono.ttf) format("truetype");
+    /* A single char of JetBrains Mono is (font-size * 0.6) pixels */
 }
 
 :root {

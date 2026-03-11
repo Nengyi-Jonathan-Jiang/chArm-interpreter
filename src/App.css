@@ -54,6 +54,11 @@ body {
     overflow-y: visible;
     padding-left: 1.5em;
     height: fit-content;
+    scroll-padding-left: calc(1.5em);
+}
+
+#asm-editor>pre {
+    cursor: default;
 }
 
 input#function-name {

@@ -1,17 +1,65 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import "./codeEditor.css"
+import { clamp } from "../util/util";
+import { useListenerOnElement } from "../util/hooks";
 
-function getAffectedRange(
+function getLinesRange(
     s: string, left: number, right: number
 ): { left: number, right: number, s: string } {
     [left, right] = [s.lastIndexOf("\n", left - 1) + 1, s.indexOf("\n", right)];
+    if (left === -1) left = 0;
+    if (right === -1) right = s.length;
     return { left, right, s: s.substring(left, right) };
 }
 function sortRange(
     a: number, b: number
 ): [number, number, "forward" | "backward"] {
     return a > b ? [b, a, "backward"] : [a, b, "forward"];
+}
+
+function fixScroll(i: HTMLTextAreaElement): void;
+function fixScroll(
+    i: HTMLTextAreaElement, mode: "start" | "end" | "best",
+    margin?: readonly [number, number]
+): void;
+function fixScroll(
+    i: HTMLTextAreaElement,
+    mode: "auto" | "start" | "end" | "best" = "auto",
+    margin: readonly [number, number] = [0, 0]
+) {
+    const {
+        selectionStart: oldLeft,
+        selectionEnd: oldRight,
+        selectionDirection: direction
+    } = i;
+
+    const oldEnd = direction === "backward" ? oldLeft : oldRight;
+    const scrollParent = i.parentElement!.parentElement!;
+
+    if (mode === "auto") {
+        i.setSelectionRange(oldEnd, oldEnd); // this only works when collapsed
+        i.blur();
+        i.focus();
+        i.setSelectionRange(oldLeft, oldRight, direction); // restore
+        return;
+    }
+
+    const { left } = getLinesRange(i.value, oldEnd, oldEnd);
+
+    const scrollMin = 19.5 + (margin[0] + oldEnd - left) * 7.2
+        - scrollParent.clientWidth
+        - scrollParent.scrollLeft;
+    const scrollMax = 0.5 + (-margin[1] + oldEnd - left) * 7.2
+        - scrollParent.scrollLeft;
+
+    if(scrollMin <= 0 && scrollMax >= 0) return;
+
+    scrollParent.scrollLeft += {
+        start: scrollMax,
+        end: scrollMin,
+        best: clamp(0, scrollMin, scrollMax)
+    }[mode];
 }
 
 export function CodeEditor({ value, setValue, errors, placeholder, Highlighter }: {
@@ -23,12 +71,17 @@ export function CodeEditor({ value, setValue, errors, placeholder, Highlighter }
 }) {
     errors ??= new Map;
 
+    const textareRef = useRef<HTMLTextAreaElement>(null);
+
     return <div className="code-editor">
         <textarea className="code-input"
+            ref={textareRef}
             spellCheck="false"
             placeholder={placeholder}
             value={value}
-            onChange={e => setValue(e.target.value)}
+            onChange={e => {
+                setValue(e.target.value);
+            }}
             onKeyDown={e => {
                 const { currentTarget: i, key, shiftKey: shift, ctrlKey: ctrl } = e;
                 const {
@@ -41,10 +94,12 @@ export function CodeEditor({ value, setValue, errors, placeholder, Highlighter }
                 const oldStart = direction === "backward" ? oldRight : oldLeft;
                 const oldEnd = direction === "backward" ? oldLeft : oldRight;
 
+                const scrollParent = i.parentElement!.parentElement!;
+
                 if (key === 'Tab') {
                     e.preventDefault();
 
-                    const { left, right, s } = getAffectedRange(
+                    const { left, right, s } = getLinesRange(
                         value, oldLeft, oldRight
                     );
 
@@ -65,11 +120,12 @@ export function CodeEditor({ value, setValue, errors, placeholder, Highlighter }
                         left, left + replacement.length,
                         direction
                     );
+                    return;
                 }
                 if ((key === '/' || key === '?') && ctrl) {
                     e.preventDefault();
 
-                    const { left, right, s } = getAffectedRange(
+                    const { left, right, s } = getLinesRange(
                         i.value, oldLeft, oldRight
                     );
 
@@ -94,32 +150,52 @@ export function CodeEditor({ value, setValue, errors, placeholder, Highlighter }
                 }
                 if (key === 'Home') {
                     e.preventDefault();
-    
-                    const { left, s } = getAffectedRange(
+
+                    const { left, s } = getLinesRange(
                         i.value, oldEnd, oldEnd
                     );
 
                     let target = left + s.match(/^ */)![0].length;
-                    console.log(oldEnd, left, target, direction);
                     if (oldEnd === target) {
                         target = left;
                     }
                     i.setSelectionRange(
                         ...sortRange(shift ? oldStart : target, target)
                     );
-                    // TODO: Scroll to beginning
+                    // Scroll to left
+                    scrollParent.scrollLeft = 0;
+                    fixScroll(i, "start");
+                    return;
                 }
-                // if (key === 'End') {
-                //     e.preventDefault();
-                //     const smartEndIndex = left + s.match(/ *$/)!.index!;
-                //     if (wasCollapsed && oldLeft === smartEndIndex) {
-                //         i.setSelectionRange(right, right);
-                //     }
-                //     else {
-                //         i.setSelectionRange(smartEndIndex, smartEndIndex);
-                //     }
-                //     // TODO: Scroll to end
+                if (key === 'End') {
+                    e.preventDefault();
+
+                    const { right, s } = getLinesRange(
+                        i.value, oldEnd, oldEnd
+                    );
+
+                    let target = right - s.match(/ *$/)![0].length;
+                    if (oldEnd === target) {
+                        target = right;
+                    }
+                    i.setSelectionRange(
+                        ...sortRange(shift ? oldStart : target, target)
+                    );
+                    // Scroll to right
+                    fixScroll(i, "end");
+                    return;
+                }
+                if (e.key === 'Enter') {
+
+                    // Smart indent
+                    // const { left, right, s } = getLinesRange(
+                    //     i.value, oldEnd, oldEnd
+                    // );
+                }
+                // if(e.key === 'PageUp' || e.key === 'PageDown') {
+                //     p.scrollLeft = 0;
                 // }
+                // setTimeout(() => scrollProperly(i), 0);
             }}
         />
         <div className="code-overlay">

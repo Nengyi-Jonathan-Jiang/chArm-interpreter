@@ -32,8 +32,6 @@ export function HighlighterWithErrors({ children, errors }: {
         }px`);
     }), []);
     useMonitor(() => document.getElementById("asm-editor"), (e, prev) => {
-        console.log(e, prev);
-
         if(prev) resizeObserver.unobserve(prev);
         if (e) {
             resizeObserver.observe(e);

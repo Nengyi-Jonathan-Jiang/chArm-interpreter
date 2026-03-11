@@ -70,3 +70,7 @@ export function splitWhitespace(s: string): [string, string, string] {
     ];
     return [a, b, c];
 }
+
+export function clamp(x: number, min: number, max: number) {
+    return x < min ? min : x > max ? max : x;
+}

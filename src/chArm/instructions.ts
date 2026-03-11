@@ -473,8 +473,8 @@ export class UBFM extends InstructionBase<{
     }
 
     static doOperation(src: bigint, r: bigint, s: bigint): bigint {
-        const mask = (1n << s) - 1n;
-        return r >= s ? (src >> r) & mask : (src & mask) << (64n - r);
+        const mask = (2n << s) - 1n;
+        return r <= s ? (src >> r) & mask : (src & mask) << (64n - r);
     }
 }
 
