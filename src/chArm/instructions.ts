@@ -416,7 +416,7 @@ export class LSL extends BinOpRX {
     protected checkOperands(): void {
         this.checkRegisterGP("dst");
         this.checkRegisterGP("a");
-        if (typeof this.operands.b === "bigint")
+        if (typeof this.operands.b !== "bigint")
             this.checkRegister("b" as never);
         else this.checkOperandRange("b" as never, 6);
     }
@@ -432,7 +432,7 @@ export class LSR extends BinOpRX {
     protected checkOperands(): void {
         this.checkRegisterGP("dst");
         this.checkRegisterGP("a");
-        if (typeof this.operands.b === "bigint")
+        if (typeof this.operands.b !== "bigint")
             this.checkRegister("b" as never);
         else this.checkOperandRange("b" as never, 6);
     }
