@@ -131,7 +131,6 @@ export function assembleChARM(tokens: readonly ChARMToken[]): [
                 case "subs":
                 case "ands":
                 case "orr":
-                case "mvn":
                 case "eor": {
                     const dst = expectReg(rest);
                     if (dst === null) break;
@@ -152,6 +151,16 @@ export function assembleChARM(tokens: readonly ChARMToken[]): [
                     const b = expectReg(rest);
                     if (b === null) break;
                     res.push(new TST({ a, b }))
+                    break;
+                }
+
+                case "mvn": {
+                    const dst = expectReg(rest);
+                    if (dst === null) break;
+                    if (!expectPunct(rest, ",")) break;
+                    const a = expectReg(rest);
+                    if (a === null) break;
+                    res.push(new MVN({ dst, a }))
                     break;
                 }
 
