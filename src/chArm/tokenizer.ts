@@ -166,7 +166,7 @@ export function tokenize(src: string): readonly ChARMToken[] {
             }), [res, idx + line.length + 1]
         ),
         [[], 0]
-    )[0].filter(i => i.line.length !== 0);
+    )[0];
 
     const res: ChARMToken[] = [];
     for (const tok of lines) {

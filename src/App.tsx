@@ -8,6 +8,7 @@ import { HorizontalResizableDoublePane, VerticalResizableDoublePane } from './re
 import { useListenerOnWindow, useManualRerender } from './util/hooks'
 import { tokenize } from './chArm/tokenizer'
 import { assembleChARM } from './chArm/parser'
+import { InputsEditor } from './inputsEditor'
 
 function HL({ children, color, ...attributes }: {
     children: ReactNode,
@@ -44,14 +45,10 @@ const FuncNameInput = ({
     />
 }
 
-const LineNumbers = memo((
-    { amount, current }: { amount: number, current?: number | undefined }
-) => {
+const LineNumbers = memo(({ amount }: { amount: number }) => {
     const len = amount.toString().length;
 
-    return <pre className="line-numbers" style={{
-        "--current": current ?? "-infinity"
-    } as any}>
+    return <pre id="line-numbers">
         {
             new Array(amount).fill(0)
                 .map((_, i) => i + 1)
@@ -89,7 +86,7 @@ function App() {
     }, [code, funcName]);
 
     const tokenized = useMemo(() => tokenize(code), [code]);
-    const [instructions, lineNumbers, errors] = useMemo(
+    const [instructions, _lineNumbers, errors] = useMemo(
         () => assembleChARM(tokenized), [tokenized]
     );
     (window as any)['instructions'] = instructions;
@@ -138,9 +135,15 @@ function App() {
         </div>
     } right={
         <VerticalResizableDoublePane top={
-            <div>Top</div>
+            <div>
+                <div id="run-controls">
+                    
+                </div>
+            </div>
         } bottom={
-            <div>Bottom</div>
+            <div>
+                <InputsEditor/>
+            </div>
         } />
     } />
 

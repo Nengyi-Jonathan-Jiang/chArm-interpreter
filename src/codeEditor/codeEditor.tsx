@@ -52,7 +52,7 @@ function fixScroll(
     const scrollMax = 0.5 + (-margin[1] + oldEnd - left) * 7.2
         - scrollParent.scrollLeft;
 
-    if(scrollMin <= 0 && scrollMax >= 0) return;
+    if (scrollMin <= 0 && scrollMax >= 0) return;
 
     scrollParent.scrollLeft += {
         start: scrollMax,
@@ -183,20 +183,25 @@ export function CodeEditor({ value, setValue, errors, placeholder, Highlighter }
                     return;
                 }
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    const { left, right, s } = getLinesRange(
+                    const { left, s } = getLinesRange(
                         i.value, i.selectionStart, i.selectionStart
                     );
+                    const trailingWhitespace = s.substring(
+                        oldRight - left
+                    ).match(/^ */)?.[0]?.length ?? 0;
 
                     e.preventDefault();
                     document.execCommand("insertText", false, "\n");
+
                     // Smart indent
 
                     // Double-check that the selection is now collapsed
-                    document.getSelection()?.collapseToEnd();
+                    i.selectionStart = oldStart + 1;
+                    i.selectionEnd = oldStart + 1 + trailingWhitespace;
 
                     const match = s.match(/^( +(?:\/\/ *)?)/)?.[0];
 
-                    if(match) document.execCommand("insertText", false, match);
+                    if (match) document.execCommand("insertText", false, match);
                 }
                 // if(e.key === 'PageUp' || e.key === 'PageDown') {
                 //     p.scrollLeft = 0;

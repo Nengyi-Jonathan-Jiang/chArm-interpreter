@@ -20,30 +20,34 @@ body {
     height: 100%;
 }
 
+.resizable-pane>div {
+    width: 100%;
+    height: 100%;
+}
+
 #asm-editor-outer {
     display: flex;
     flex-direction: row;
-    width: 100%;
-    height: 100%;
     padding: 0 0.5em;
 }
 
-#asm-editor-outer>.line-numbers {
+#asm-editor-outer>#line-numbers {
     position: relative;
     flex: 0;
     color: var(--color-medium);
     user-select: none;
-    height: fit-content
+    height: fit-content;
+    --current: -infinity;
 }
 
-.line-numbers::before {
+#line-numbers::before {
     position: absolute;
     top: calc(var(--current) * 18px);
     content: "▶";
     color: var(--color-green);
 }
 
-.line-numbers::after {
+#line-numbers::after {
     border-left: 1px solid var(--color-medium);
     position: absolute;
     width: 1.5em;
@@ -76,6 +80,19 @@ input#function-name {
 
 input#function-name::placeholder {
     color: var(--color-medium);
+}
+
+.code-highlighter-container span.tab-line {
+    width: 10px;
+    margin-right: -10px;
+    display: inline-block;
+    margin-top: -1px;
+    height: 18px;
+    margin-bottom: -4.5px;
+    transform-origin: left;
+    transform: scaleX(0.1);
+    background-color: var(--color-darker);
+    mix-blend-mode: lighten;
 }
 
 .code-highlighter-container .error {

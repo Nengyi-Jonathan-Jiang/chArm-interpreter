@@ -270,7 +270,7 @@ export class CMN extends BinOpRR<"ZR"> {
 
     protected checkOperands(): void {
         this.checkRegisterGP("a");
-        this.checkRegisterGP("b" as never);
+        this.checkRegisterZR("b" as never);
     }
     doOperation = ADDS.prototype.doOperation;
 }
@@ -319,7 +319,7 @@ export class CMP extends BinOpRR<"ZR"> {
 
     protected checkOperands(): void {
         this.checkRegisterGP("a");
-        this.checkRegisterGP("b" as never);
+        this.checkRegisterZR("b" as never);
     }
 
     doOperation = SUBS.prototype.doOperation;
