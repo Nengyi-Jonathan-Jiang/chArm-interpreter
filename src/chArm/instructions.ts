@@ -400,7 +400,7 @@ export class TST extends BinOpRR<"ZR"> {
 
     protected checkOperands(): void {
         this.checkRegisterGP("a");
-        this.checkRegisterGP("b");
+        this.checkRegisterZR("b");
     }
 
     doOperation = ANDS.prototype.doOperation;
