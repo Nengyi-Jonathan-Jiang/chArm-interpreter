@@ -98,7 +98,7 @@ export function assembleChARM(tokens: readonly ChARMToken[], startLabel?: string
     for (const [label, [, toks]] of labelMap) {
         if (toks.length > 1) {
             error(
-                `Duplicate label "${label}" (lines ${toks.map(i => i.lineNumber + 7).join(', ')
+                `Duplicate label "${label}" (lines ${toks.map(i => i.lineNumber + 6).join(', ')
                 })`,
                 ...toks
             );
