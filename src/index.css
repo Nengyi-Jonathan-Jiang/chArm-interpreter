@@ -50,7 +50,6 @@
 
         --color-fg:       var(--color-darkest);
         --color-bg:       var(--color-light);
-        --color-accent:   var(--color-blue);
         --color-error:    var(--color-red);
         --color-error-t:  color-mix(var(--color-red) 25%, transparent);
 
