@@ -3,42 +3,42 @@ div.code-highlighter-container pre {
 }
 
 div.code-highlighter-container .code-highlighter-errors {
-    display: flex;
+    display:        flex;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    width: 100%;
+    position:       absolute;
+    top:            0;
+    width:          100%;
 }
 
 div.code-highlighter-container {
-    --width: calc(infinity * 1px);
+    --width:  calc(infinity * 1px);
     position: relative;
 }
 
 div.code-highlighter-container div.errors {
-    position: absolute;
+    position:         absolute;
     background-color: var(--color-bg);
-    white-space: wrap;
-    display: flex;
-    flex-direction: column;
-    padding: calc(0.75em - 0.333px) 0.5em;
-    border: 1px solid var(--color-red);
-    border-radius: 0.5em;
-    color: var(--color-fg);
-    margin-top: -1px;
-    width: max-content;
-    max-width: calc(var(--width) - 2em);
-    overflow-wrap: break-word;
+    white-space:      wrap;
+    display:          flex;
+    flex-direction:   column;
+    padding:          calc(0.75em - 0.333px) 0.5em;
+    border:           1px solid var(--color-red);
+    border-radius:    0.5em;
+    color:            var(--color-fg);
+    margin-top:       -1px;
+    width:            max-content;
+    max-width:        calc(var(--width) - 2em);
+    overflow-wrap:    break-word;
 }
 
 div.code-highlighter-container .up div.errors {
     transform: translateY(calc(1px - 1.5em - 100%));
 }
 
-div.code-highlighter-container div.errors> :not(:last-child)::after {
+div.code-highlighter-container div.errors > :not(:last-child)::after {
     display: block;
     content: "-";
-    color: transparent;
+    color:   transparent;
 }
 
 /* div.code-highlighter-container span.error-line:not(.no-errors) {
@@ -46,56 +46,49 @@ div.code-highlighter-container div.errors> :not(:last-child)::after {
 } */
 
 div.code-highlighter-container span.error-line::before {
-    position: sticky;
-    left: -1.1em;
-    margin-left: -1.1em;
-    display: block;
-    font-family: 'Jetbrains Mono';
-    content: "›";
-    width: 1em;
-    color: transparent;
-    user-select: none;
+    position:       sticky;
+    left:           -1.1em;
+    margin-left:    -1.1em;
+    display:        block;
+    font-family:    'Jetbrains Mono';
+    content:        "›";
+    width:          1em;
+    color:          transparent;
+    user-select:    none;
     pointer-events: none;
-    z-index: 2;
+    z-index:        2;
 }
 
 div.code-highlighter-container span.error-line:not(:empty)::before {
     pointer-events: all;
-    color: var(--color-red);
+    color:          var(--color-red);
 }
 
 div.code-highlighter-container span.error-line:not(:empty)::after {
-    position: sticky;
-    left: -1em;
-    margin-left: -1em;
-    display: block;
+    position:         sticky;
+    left:             -1em;
+    margin-left:      -1em;
+    display:          block;
 
-    content: " ";
-    width: 100%;
-    margin-right: calc(-infinity * 1px);
-    /* color: transparent;
-    user-select: none;
-    pointer-events: none;
-    z-index: 2; */
+    content:          " ";
+    width:            100%;
+    margin-right:     calc(-infinity * 1px);
 
-    /* content: ""; */
-    /* width: calc(100% + 0.5em); */
-    margin-top: -1px;
-    height: 1px;
-    display: block;
-    border-top: 1px var(--color-red);
+    margin-top:       -1px;
+    height:           1px;
+    border-top:       1px var(--color-red);
     border-top-style: dotted;
-    mix-blend-mode: lighten;
-    opacity: 40%;
-    z-index: 2;
-    pointer-events: none;
+    mix-blend-mode:   var(--blend-mode-2);
+    opacity:          40%;
+    z-index:          2;
+    pointer-events:   none;
 }
 
-div.code-highlighter-container .error-line>div {
+div.code-highlighter-container .error-line > div {
     position: sticky;
-    left: 0;
-    width: 0;
-    z-index: 3;
+    left:     0;
+    width:    0;
+    z-index:  3;
 }
 
 div.code-highlighter-container .error-line:not(:hover) div.errors {

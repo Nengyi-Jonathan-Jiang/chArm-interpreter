@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { CodeEditor } from "./codeEditor/codeEditor";
 import type { Register, RegisterGP, State } from "./chArm/state";
 
@@ -77,7 +77,11 @@ export function InputsEditor (
         }
     }
 
-    type Action = { type: "reg", register: Register, value: bigint } | { type: "mem", size: bigint, value: bigint };
+    type Action = { type: "reg", register: Register, value: bigint } | {
+        type: "mem",
+        size: bigint,
+        value: bigint
+    };
     const labelUses                            = new Map<string, Action[]>;
     const labelPositions                       = new Map<string, bigint>;
     const actions: Action[]                    = [];
@@ -91,7 +95,9 @@ export function InputsEditor (
                     token.error = true;
                     break;
                 }
-                token.value &= (1n << (typeof currState === "bigint" ? currState : 64n)) - 1n;
+                token.value &= (1n << (typeof currState === "bigint"
+                                       ? currState
+                                       : 64n)) - 1n;
                 if (typeof currState === "bigint") {
                     actions.push({
                         type:  "mem",
@@ -130,7 +136,8 @@ export function InputsEditor (
                         value:    0n,
                     });
                 }
-                getCached(labelUses, token.value, (): [] => []).push(actions[actions.length - 1]);
+                getCached(labelUses, token.value, (): [] => [])
+                    .push(actions[actions.length - 1]);
                 currState = null;
                 lastToken = token;
                 break;
@@ -170,7 +177,8 @@ export function InputsEditor (
                 const { type, s } = t;
                 return type === "whitespace"
                        ? s
-                       : <span className={ type + (t.error ? ' error' : '') } key={ i }>{ s }</span>;
+                       : <span className={ type + (t.error ? ' error' : '') }
+                               key={ i }>{ s }</span>;
             }) }
         </pre> }
         placeholder={

@@ -23,5 +23,5 @@
 }
 
 #inputs-editor span:is(.regkwd,.size) {
-    color: var(--color-blue)
+    color: var(--color-cyan)
 }

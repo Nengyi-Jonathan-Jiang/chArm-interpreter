@@ -1,5 +1,8 @@
 import { B_condMap as conditions } from "./instructions";
-import { type Token, extractBeginning, getTokenLength, getTokenContents, splitToken, relabelToken, trimToken, sliceToken } from "../parsing/parsing";
+import {
+    extractBeginning, getTokenContents, getTokenLength, relabelToken,
+    sliceToken, splitToken, type Token, trimToken,
+} from "../parsing/parsing";
 
 const opcodes = [
     "ldur", "stur", "movk", "movz",
@@ -25,9 +28,10 @@ export type ChARMToken = Token<
 >;
 
 const operandRegex = /([[\],]|LSL)|(\bX(?:[12]?\d|30)\b)|(\bSP\b)|(\bXZR\b)|(#-?(?:0x[\da-fA-F_]+|0b[10_]+|[\d_]+)\b)|(\.?\b[a-z_]\w*\b)/si;
-function tokenizeInstructionOperands(tok: Token<"line">): ChARMToken[] {
+
+function tokenizeInstructionOperands (tok: Token<"line">): ChARMToken[] {
     const result: ChARMToken[] = [];
-    let match: [ChARMToken, Token<"line">] | null;
+    let match: [ ChARMToken, Token<"line"> ] | null;
     while (match = extractBeginning(tok, operandRegex, match =>
         ([
             "punct",
@@ -35,11 +39,11 @@ function tokenizeInstructionOperands(tok: Token<"line">): ChARMToken[] {
             "SP",
             "ZR",
             "imm",
-            "label"
+            "label",
         ] satisfies (ChARMToken["type"])[])[match
-            .map((s, i) => [s, i - 1] as const)
+            .map((s, i) => [ s, i - 1 ] as const)
             .filter(s => s[1] >= 0 && s[0] !== undefined)[0][1]
-        ]
+            ],
     )) {
         result.push(match[0]);
         tok = match[1];
@@ -48,14 +52,14 @@ function tokenizeInstructionOperands(tok: Token<"line">): ChARMToken[] {
     return result;
 }
 
-function tokenizeInstruction(tok: Token<"line">): ChARMToken[] {
+function tokenizeInstruction (tok: Token<"line">): ChARMToken[] {
     if (getTokenLength(tok) === 0) return [];
 
-    let [op] = getTokenContents(tok).split(/\s/, 1);
-    const [opTok, rest] = splitToken(tok, "unknown", "line", op.length);
+    let [ op ]            = getTokenContents(tok).split(/\s/, 1);
+    const [ opTok, rest ] = splitToken(tok, "unknown", "line", op.length);
 
     if (op.match(/^\.?[a-zA-Z_]\w*:$/)) {
-        return [relabelToken(opTok, "label")];
+        return [ relabelToken(opTok, "label") ];
     }
 
     op = op.toLowerCase();
@@ -66,32 +70,32 @@ function tokenizeInstruction(tok: Token<"line">): ChARMToken[] {
     ) {
         return [
             ...splitToken(opTok, "opcode", "condition", 1),
-            ...tokenizeInstructionOperands(rest)
+            ...tokenizeInstructionOperands(rest),
         ];
     }
 
     if (opcodes.includes(op as never)) {
         return [
             relabelToken(opTok, "opcode"),
-            ...tokenizeInstructionOperands(rest)
-        ]
+            ...tokenizeInstructionOperands(rest),
+        ];
     }
 
     return [];
 }
 
-export function tokenize(src: string): readonly ChARMToken[] {
-    const lines = src.split("\n").reduce<[Token<"line">[], number]>(
-        ([res, idx], line, i) => (
+export function tokenize (src: string): readonly ChARMToken[] {
+    const lines = src.split("\n").reduce<[ Token<"line">[], number ]>(
+        ([ res, idx ], line, i) => (
             res.push({
-                type: "line",
-                line: line,
-                lineNumber: i,
-                lineRange: [0, line.length],
-                originalRange: [idx, idx + line.length]
-            }), [res, idx + line.length + 1]
+                type:          "line",
+                line:          line,
+                lineNumber:    i,
+                lineRange:     [ 0, line.length ],
+                originalRange: [ idx, idx + line.length ],
+            }), [ res, idx + line.length + 1 ]
         ),
-        [[], 0]
+        [ [], 0 ],
     )[0];
 
     const res: ChARMToken[] = [];
@@ -99,8 +103,9 @@ export function tokenize(src: string): readonly ChARMToken[] {
         const { line } = tok;
 
         if (line.indexOf("//") != -1) {
-            const i = line.indexOf("//");
-            const [rest, commentToken] = splitToken(tok, "line", "comment", i);
+            const i                      = line.indexOf("//");
+            const [ rest, commentToken ] = splitToken(
+                tok, "line", "comment", i);
 
             res.push(...tokenizeInstruction(trimToken(rest)), commentToken);
         }

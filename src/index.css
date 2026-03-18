@@ -1,53 +1,85 @@
 @font-face {
     font-family: JetBrains Mono;
-    src: url(assets/JetBrainsMono.ttf) format("truetype");
+    src:         url(assets/JetBrainsMono.ttf) format("truetype");
     /* A single char of JetBrains Mono is (font-size * 0.6) pixels */
 }
 
+@font-face {
+    font-family: Figtree;
+    src:         url(assets/Figtree.ttf) format("truetype");
+}
+
+/* Color definitions */
 :root {
-    --color-red: #ff6188;
-    --color-orange: #fc9867;
-    --color-yellow: #ffd866;
-    --color-green: #a9dc76;
-    --color-blue: #78dce8;
-    --color-purple: #ab9df2;
-    /*--color-red: #f48;*/
-    /*--color-orange: #f84;*/
-    /*--color-yellow: #fd4;*/
-    /*--color-green: #bd6;*/
-    /*--color-blue: #4bf;*/
-    /*--color-purple: #a8f;*/
-    --color-darkest: #19181a;
-    --color-dark: #2d2a2e;
-    --color-darker: #4F4D50;
-    --color-medium: #939293;
-    --color-light: #fffffd;
+    --color-red:      #ff6188;
+    --color-orange:   #fc9867;
+    --color-yellow:   #ffd866;
+    --color-green:    #a9dc76;
+    --color-cyan:     #78dce8;
+    --color-purple:   #ab9df2;
+    --color-darkest:  #19181a;
+    --color-dark:     #2d2a2e;
+    --color-medium-2: #4f4d50;
+    --color-medium:   #939293;
+    --color-light:    #fffffd;
 
-    --color-fg: var(--color-light);
-    --color-bg: var(--color-dark);
+    --color-fg:       var(--color-light);
+    --color-bg:       var(--color-dark);
+    --color-error:    var(--color-red);
+    --color-error-t:  color-mix(var(--color-red) 25%, transparent);
 
-    color: var(--color-fg);
-    background: var(--color-bg);
+    --blend-mode-2:   lighten;
 
-    font-family: system, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
+    color:            var(--color-fg);
+    background:       var(--color-bg);
+}
 
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
+@media (prefers-color-scheme: light) {
+    :root {
+        --color-red:      #d52753;
+        --color-orange:   #df631c;
+        --color-yellow:   #c5a332;
+        --color-green:    #23974a;
+        --color-cyan:     #0098dd;
+        --color-purple:   #603ade;
+        --color-darkest:  #19181a;
+        --color-dark:     #2d2a2e;
+        --color-medium:   #a59fa0;
+        --color-medium-2: #bdbdbd;
+        --color-light:    #f9f9f9;
+
+        --color-fg:       var(--color-darkest);
+        --color-bg:       var(--color-light);
+        --color-accent:   var(--color-blue);
+        --color-error:    var(--color-red);
+        --color-error-t:  color-mix(var(--color-red) 25%, transparent);
+
+        --blend-mode-2:   darken;
+    }
+}
+
+:root {
+    font-family:             Figtree, Avenir, Helvetica, Arial, sans-serif;
+    line-height:             1.5;
+    font-weight:             400;
+    font-variant:            small-caps;
+
+    font-synthesis:          none;
+    text-rendering:          optimizeLegibility;
+    -webkit-font-smoothing:  antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 *, *::before, *::after {
     box-sizing: border-box;
-    font: inherit;
-    color: inherit;
+    font:       inherit;
+    color:      inherit;
     background: transparent;
-    outline: none;
-    border: none;
-    margin: 0;
-    padding: 0;
+    outline:    none;
+    border:     none;
+    margin:     0;
+    padding:    0;
+
 }
 
 *::-webkit-scrollbar {

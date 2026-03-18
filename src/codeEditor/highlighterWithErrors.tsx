@@ -1,8 +1,8 @@
-import { useMemo, useRef, type ReactNode } from "react";
-import "./highlighterWithErrors.css"
+import { type ReactNode, useMemo, useRef } from "react";
+import "./highlighterWithErrors.css";
 import { useIntersectionObserver, useMonitor } from "../util/hooks";
 
-export function HighlighterWithErrors({ children, errors }: {
+export function HighlighterWithErrors ({ children, errors }: {
     errors?: Map<number, string[]>,
     children: ReactNode
 }): ReactNode {
@@ -14,12 +14,12 @@ export function HighlighterWithErrors({ children, errors }: {
     }
 
     const ref = useIntersectionObserver({
-        root: null,
+        root:       null,
         rootMargin: "-50% 0px 0px 0px",
     })((i: boolean, el: HTMLDivElement) => {
         if (i) el.classList.add('up');
         else el.classList.remove('up');
-    })
+    });
 
     const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -32,28 +32,29 @@ export function HighlighterWithErrors({ children, errors }: {
         }px`);
     }), []);
     useMonitor(() => document.getElementById("asm-editor"), (e, prev) => {
-        if(prev) resizeObserver.unobserve(prev);
+        if (prev) resizeObserver.unobserve(prev);
         if (e) {
             resizeObserver.observe(e);
         }
     });
 
-    return <div className='code-highlighter-container' ref={editorContainerRef}>
-        {children}
-        <div className='code-highlighter-errors'>
+    return <div className="code-highlighter-container"
+                ref={ editorContainerRef }>
+        { children }
+        <div className="code-highlighter-errors">
             {
                 new Array(numLines).fill(null).map((_, i) => {
                     const lineErrors = errors.get(i);
                     if (!lineErrors) {
-                        return <span className='error-line' key={i} />;
+                        return <span className="error-line" key={ i }/>;
                     }
 
-                    return <span className='error-line' key={i}>
-                        <div ref={ref}>
-                            <div className='errors'>
+                    return <span className="error-line" key={ i }>
+                        <div ref={ ref }>
+                            <div className="errors">
                                 {
                                     lineErrors.map((message, i) =>
-                                        <span key={i}>{message}</span>
+                                        <span key={ i }>{ message }</span>,
                                     )
                                 }
                             </div>
@@ -62,5 +63,5 @@ export function HighlighterWithErrors({ children, errors }: {
                 })
             }
         </div>
-    </div>
+    </div>;
 }

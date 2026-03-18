@@ -1,22 +1,22 @@
-export function cast<T>(x: any): T {
+export function cast<T> (x: any): T {
     return x as never as T;
 }
 
-export function wrapUndef<T>(
-    x: T | undefined
-): [] | [T];
-export function wrapUndef<T, U>(
-    x: T | undefined, f: (x: T) => U
-): [] | [U];
+export function wrapUndef<T> (
+    x: T | undefined,
+): [] | [ T ];
+export function wrapUndef<T, U> (
+    x: T | undefined, f: (x: T) => U,
+): [] | [ U ];
 /**
  * Wraps x in an 1-tuple. If x is undefined, returns the empty tuple.
  *
  * This is useful when propagating optional arguments
  */
-export function wrapUndef(
-    x: any, f?: (x: any) => any
+export function wrapUndef (
+    x: any, f?: (x: any) => any,
 ): any {
-    return x === undefined ? [] : [f ? f(x) : x];
+    return x === undefined ? [] : [ f ? f(x) : x ];
 }
 
 /**
@@ -24,15 +24,15 @@ export function wrapUndef(
  */
 export type IntRange<N extends number> = IntRange_<N, []>;
 type IntRange_<N extends number, A extends number[]>
-    = A['length'] extends N ? A[number] : IntRange_<N, [...A, A['length']]>;
+    = A['length'] extends N ? A[number] : IntRange_<N, [ ...A, A['length'] ]>;
 
 /** Generate a random BigInt with the given number of bits */
-export function randUnsignedBigint(numBits: number): bigint {
+export function randUnsignedBigint (numBits: number): bigint {
     const res = randUnsignedBigintBytes((numBits + 7) >> 3);
     return res & ((1n << BigInt(numBits)) - 1n);
 }
 
-function randUnsignedBigintBytes(numBytes: number): bigint {
+function randUnsignedBigintBytes (numBytes: number): bigint {
     if (numBytes === 1) {
         return BigInt(~~(Math.random() * 256));
     }
@@ -43,27 +43,27 @@ function randUnsignedBigintBytes(numBytes: number): bigint {
 }
 
 /** Converts a number to a hex string with the given number of digits */
-export function toHexString(n: number | bigint, bytes: number) {
+export function toHexString (n: number | bigint, bytes: number) {
     return n.toString(16).padStart(bytes * 2, '0');
 }
 
-export function isUint64N(n: bigint): boolean {
+export function isUint64N (n: bigint): boolean {
     return (n & 0x8000_0000_0000_0000n) != 0n;
 }
 
-export function isUint64Z(n: bigint): boolean {
+export function isUint64Z (n: bigint): boolean {
     return (n & 0xffff_ffff_ffff_ffffn) == 0n;
 }
 
-export function isUint64C(n: bigint): boolean {
+export function isUint64C (n: bigint): boolean {
     return n >= 0x1_0000_0000_0000_0000n;
 }
 
-export function getUint64Complement(n: bigint): bigint {
+export function getUint64Complement (n: bigint): bigint {
     return (~n + 1n) & 0xffff_ffff_ffff_ffffn;
 }
 
-export function className(x: object): string {
+export function className (x: object): string {
     return x.constructor.name;
 }
 
@@ -74,14 +74,14 @@ export type FilterRecordValue<R extends Record<string, unknown>, V> =
         )]: V
 }
 
-export function splitWhitespace(s: string): [string, string, string] {
-    const [, a, b, c] = s.match(/^(\s*)(|[^\s]|[^\s].*[^\s])(\s*)$/s) ?? [
-        null, "", "", ""
+export function splitWhitespace (s: string): [ string, string, string ] {
+    const [ , a, b, c ] = s.match(/^(\s*)(|[^\s]|[^\s].*[^\s])(\s*)$/s) ?? [
+        null, "", "", "",
     ];
-    return [a, b, c];
+    return [ a, b, c ];
 }
 
-export function clamp(x: number, min: number, max: number) {
+export function clamp (x: number, min: number, max: number) {
     return x < min ? min : x > max ? max : x;
 }
 
@@ -98,11 +98,12 @@ type TypedArray =
     | BigInt64Array
     | BigUint64Array;
 
-export function cloneArray<T extends any[] | TypedArray>(arr: T): T {
+export function cloneArray<T extends any[] | TypedArray> (arr: T): T {
     return arr.map(i => i) as never;
 }
 
-export function getCached<K, T>(m: Map<K, T>, key: K, defaultValue: () => T): T {
+export function getCached<K, T> (
+    m: Map<K, T>, key: K, defaultValue: () => T): T {
     if (m.has(key)) {
         return m.get(key)!;
     }
@@ -111,7 +112,7 @@ export function getCached<K, T>(m: Map<K, T>, key: K, defaultValue: () => T): T 
     return res;
 }
 
-export function getAndDelete<K, T>(m: Map<K, T>, key: K): T | undefined {
+export function getAndDelete<K, T> (m: Map<K, T>, key: K): T | undefined {
     const res = m.get(key);
     m.delete(key);
     return res;
